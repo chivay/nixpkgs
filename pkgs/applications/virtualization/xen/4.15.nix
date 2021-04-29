@@ -38,11 +38,11 @@ let
 in
 
 callPackage (import ./generic.nix (rec {
-  version = "4.10.4";
+  version = "4.15.0";
 
   src = fetchurl {
     url = "https://downloads.xenproject.org/release/xen/${version}/xen-${version}.tar.gz";
-    sha256 = "0ipkr7b3v3y183n6nfmz7q3gnzxa20011df4jpvxi6pmr8cpnkwh";
+    sha256 = "1bddy402pw7brng5xnbm9l592ylvgm2hfrydxl9jk7vcfaa17x3c";
   };
 
   # Sources needed to build tools and firmwares.
@@ -105,8 +105,8 @@ callPackage (import ./generic.nix (rec {
     "firmware/etherboot/ipxe.git" = {
       src = fetchgit {
         url = "https://git.ipxe.org/ipxe.git";
-        rev = "356f6c1b64d7a97746d1816cef8ca22bdd8d0b5d";
-        sha256 = "15n400vm3id5r8y3k6lrp9ab2911a9vh9856f5gvphkazfnmns09";
+        rev = "988d2c13cdf0f0b4140685af35ced70ac5b3283c";
+        sha256 = "1pkf1n1c0rdlzfls8fvjvi1sd9xjd9ijqlyz3wigr70ijcv6x8i9";
       };
       meta.description = "Xen's fork of iPXE";
     };
@@ -164,12 +164,12 @@ callPackage (import ./generic.nix (rec {
 
   postPatch = ''
     # Avoid a glibc >= 2.25 deprecation warnings that get fatal via -Werror.
-    sed 1i'#include <sys/sysmacros.h>' \
-      -i tools/blktap2/control/tap-ctl-allocate.c \
-      -i tools/libxl/libxl_device.c
+    #sed 1i'#include <sys/sysmacros.h>' \
+    #  -i tools/blktap2/control/tap-ctl-allocate.c \
+    #  -i tools/libxl/libxl_device.c
     # Makefile didn't include previous PKG_CONFIG_PATH so glib wasn't found
-    substituteInPlace tools/Makefile \
-      --replace 'PKG_CONFIG_PATH=$(XEN_ROOT)/tools/pkg-config' 'PKG_CONFIG_PATH=$(XEN_ROOT)/tools/pkg-config:$(PKG_CONFIG_PATH)'
+    #substituteInPlace tools/Makefile \
+    #  --replace 'PKG_CONFIG_PATH=$(XEN_ROOT)/tools/pkg-config' 'PKG_CONFIG_PATH=$(XEN_ROOT)/tools/pkg-config:$(PKG_CONFIG_PATH)'
   '';
 
   passthru = {

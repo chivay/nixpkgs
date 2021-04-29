@@ -21,6 +21,7 @@ config:
 , transfig, ghostscript, texinfo, pandoc
 
 , binutils-unwrapped
+, breakpointHook
 
 , ...} @ args:
 
@@ -66,7 +67,7 @@ stdenv.mkDerivation (rec {
 
   hardeningDisable = [ "stackprotector" "fortify" "pic" ];
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [ breakpointHook pkg-config ];
   buildInputs = [
     cmake which
 
@@ -89,6 +90,16 @@ stdenv.mkDerivation (rec {
 
   prePatch = ''
     ### Generic fixes
+
+    # Remove in-tree qemu stuff in case we build from a tar-ball
+    rm -rf tools/qemu-xen tools/qemu-xen-traditional
+
+    # Fix shebangs, mainly for build-scipts
+    # We want to do this before getting prefetched stuff to speed things up
+    # (prefetched stuff has lots of files)
+    find . -type f | xargs sed -i 's@/usr/bin/\(python\|perl\)@/usr/bin/env \1@g'
+    find . -type f -not -path "./tools/hotplug/Linux/xendomains.in" \
+      | xargs sed -i 's@/bin/bash@${stdenv.shell}@g'
 
     # Xen's stubdoms, tools and firmwares need various sources that
     # are usually fetched at build time using wget and git. We can't
@@ -114,16 +125,6 @@ stdenv.mkDerivation (rec {
     chmod +x fake-bin/*
     export PATH=$PATH:$PWD/fake-bin
 
-    # Remove in-tree qemu stuff in case we build from a tar-ball
-    rm -rf tools/qemu-xen tools/qemu-xen-traditional
-
-    # Fix shebangs, mainly for build-scipts
-    # We want to do this before getting prefetched stuff to speed things up
-    # (prefetched stuff has lots of files)
-    find . -type f | xargs sed -i 's@/usr/bin/\(python\|perl\)@/usr/bin/env \1@g'
-    find . -type f -not -path "./tools/hotplug/Linux/xendomains.in" \
-      | xargs sed -i 's@/bin/bash@${stdenv.shell}@g'
-
     # Get prefetched stuff
     ${withXenfiles (name: x: ''
       echo "${x.src} -> tools/${name}"
@@ -133,57 +134,14 @@ stdenv.mkDerivation (rec {
   '';
 
   patches = [
-    ./0000-fix-ipxe-src.patch
-    ./0000-fix-install-python.patch
-    ./0004-makefile-use-efi-ld.patch
-    ./0005-makefile-fix-efi-mountdir-use.patch
+   ./0000-fix-ipxe-src.patch
+   #./0000-fix-install-python.patch
+   ./0000-fix-pkg-config.patch
+   #./0004-makefile-use-efi-ld.patch
+   ./0005-makefile-fix-efi-mountdir-use.patch
   ] ++ (config.patches or []);
 
   postPatch = ''
-    ### Hacks
-
-    # Work around a bug in our GCC wrapper: `gcc -MF foo -v' doesn't
-    # print the GCC version number properly.
-    substituteInPlace xen/Makefile \
-      --replace '$(CC) $(CFLAGS) -v' '$(CC) -v'
-
-    # Hack to get `gcc -m32' to work without having 32-bit Glibc headers.
-    mkdir -p tools/include/gnu
-    touch tools/include/gnu/stubs-32.h
-
-    ### Fixing everything else
-
-    substituteInPlace tools/libfsimage/common/fsimage_plugin.c \
-      --replace /usr $out
-
-    substituteInPlace tools/blktap2/lvm/lvm-util.c \
-      --replace /usr/sbin/vgs ${lvm2}/bin/vgs \
-      --replace /usr/sbin/lvs ${lvm2}/bin/lvs
-
-    substituteInPlace tools/misc/xenpvnetboot \
-      --replace /usr/sbin/mount ${util-linux}/bin/mount \
-      --replace /usr/sbin/umount ${util-linux}/bin/umount
-
-    substituteInPlace tools/xenmon/xenmon.py \
-      --replace /usr/bin/pkill ${procps}/bin/pkill
-
-    substituteInPlace tools/xenstat/Makefile \
-      --replace /usr/include/curses.h ${ncurses.dev}/include/curses.h
-
-    ${optionalString (builtins.compareVersions config.version "4.8" >= 0) ''
-      substituteInPlace tools/hotplug/Linux/launch-xenstore.in \
-        --replace /bin/mkdir mkdir
-    ''}
-
-    ${optionalString (builtins.compareVersions config.version "4.6" < 0) ''
-      # TODO: use this as a template and support our own if-up scripts instead?
-      substituteInPlace tools/hotplug/Linux/xen-backend.rules.in \
-        --replace "@XEN_SCRIPT_DIR@" $out/etc/xen/scripts
-
-      # blktap is not provided by xen, but by xapi
-      sed -i '/blktap/d' tools/hotplug/Linux/xen-backend.rules.in
-    ''}
-
     ${withTools "patches" (name: x: ''
       ${concatMapStringsSep "\n" (p: ''
         echo "# Patching with ${p}"
@@ -203,6 +161,7 @@ stdenv.mkDerivation (rec {
 
   EFI_LD = "${efiBinutils}/bin/ld";
   EFI_VENDOR = "nixos";
+  EFI_MOUNTPOINT = "/boot";
 
   # TODO: Flask needs more testing before enabling it by default.
   #makeFlags = [ "XSM_ENABLE=y" "FLASK_ENABLE=y" "PREFIX=$(out)" "CONFIG_DIR=/etc" "XEN_EXTFILES_URL=\\$(XEN_ROOT)/xen_ext_files" ];

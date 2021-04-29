@@ -17,19 +17,9 @@ because I can't see why we have it
  		ln -sf $(T)-$(XEN_FULLVERSION).efi $(D)$(EFI_DIR)/$(T)-$(XEN_VERSION).efi; \
  		ln -sf $(T)-$(XEN_FULLVERSION).efi $(D)$(EFI_DIR)/$(T).efi; \
  		if [ -n '$(EFI_MOUNTPOINT)' -a -n '$(EFI_VENDOR)' ]; then \
--			$(INSTALL_DATA) $(TARGET).efi $(D)$(EFI_MOUNTPOINT)/efi/$(EFI_VENDOR)/$(T)-$(XEN_FULLVERSION).efi; \
-+			[ -d $(D)$(EFI_MOUNTPOINT)/$(EFI_VENDOR) ] || \
-+			  $(INSTALL_DIR) $(D)$(EFI_MOUNTPOINT)/$(EFI_VENDOR) ;\
-+			$(INSTALL_DATA) $(TARGET).efi $(D)$(EFI_MOUNTPOINT)/$(EFI_VENDOR)/$(T)-$(XEN_FULLVERSION).efi; \
++			[ -d $(D)$(EFI_MOUNTPOINT)/efi/$(EFI_VENDOR) ] || \
++			  $(INSTALL_DIR) $(D)$(EFI_MOUNTPOINT)/efi/$(EFI_VENDOR) ;\
+			$(INSTALL_DATA) $(TARGET).efi $(D)$(EFI_MOUNTPOINT)/efi/$(EFI_VENDOR)/$(T)-$(XEN_FULLVERSION).efi; \
  		elif [ "$(D)" = "$(patsubst $(shell cd $(XEN_ROOT) && pwd)/%,%,$(D))" ]; then \
  			echo 'EFI installation only partially done (EFI_VENDOR not set)' >&2; \
  		fi; \
-@@ -69,7 +69,7 @@
- 	rm -f $(D)$(EFI_DIR)/$(T)-$(XEN_VERSION).$(XEN_SUBVERSION).efi
- 	rm -f $(D)$(EFI_DIR)/$(T)-$(XEN_VERSION).efi
- 	rm -f $(D)$(EFI_DIR)/$(T).efi
--	rm -f $(D)$(EFI_MOUNTPOINT)/efi/$(EFI_VENDOR)/$(T)-$(XEN_FULLVERSION).efi
-+	rm -f $(D)$(EFI_MOUNTPOINT)/$(EFI_VENDOR)/$(T)-$(XEN_FULLVERSION).efi
- 
- .PHONY: _debug
- _debug:
