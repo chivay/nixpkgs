@@ -154,6 +154,8 @@ let
     GOFLAGS = lib.optionals (!proxyVendor) [ "-mod=vendor" ] ++ lib.optionals (!allowGoReference) [ "-trimpath" ];
     inherit CGO_ENABLED enableParallelBuilding GO111MODULE GOTOOLCHAIN;
 
+    hardeningDisable = ["pie"];
+
     configurePhase = args.configurePhase or (''
       runHook preConfigure
 
