@@ -330,6 +330,7 @@ let
               "pacret"
               "stackclashprotection"
               "trivialautovarinit"
+              "pie"
             ]
           ) super'.stdenv;
           glibc = super'.glibc.override rec {
