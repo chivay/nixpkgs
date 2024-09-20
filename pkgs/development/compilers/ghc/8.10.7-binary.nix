@@ -402,12 +402,14 @@ stdenv.mkDerivation rec {
     # They're in $out/share/{doc,man}.
   '';
 
-  # GHC cannot currently produce outputs that are ready for `-pie` linking.
+  # In nixpkgs, musl based builds currently enable `pie` hardening by default
+  # (see `defaultHardeningFlags` in `make-derivation.nix`).
+  # But GHC cannot currently produce outputs that are ready for `-pie` linking.
   # Thus, disable `pie` hardening, otherwise `recompile with -fPIE` errors appear.
   # See:
   # * https://github.com/NixOS/nixpkgs/issues/129247
   # * https://gitlab.haskell.org/ghc/ghc/-/issues/19580
-  hardeningDisable = [ "pie" ];
+  hardeningDisable = lib.optional stdenv.targetPlatform.isMusl "pie";
 
   doInstallCheck = true;
   installCheckPhase = ''
