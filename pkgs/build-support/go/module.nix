@@ -77,6 +77,7 @@ let
       # `overlay0` is `{ ... }`
       final: prev: overlay0;
 
+    stdenvWantsPIE = builtins.elem "pie" stdenv.cc.bintools.defaultHardeningFlags;
 in
 (stdenv.mkDerivation (finalAttrs:
   args
@@ -189,10 +190,13 @@ in
         (lib.optional (!finalAttrs.proxyVendor) "-mod=vendor")
       ++ lib.warnIf (builtins.elem "-trimpath" GOFLAGS) "`-trimpath` is added by default to GOFLAGS by buildGoModule when allowGoReference isn't set to true"
         (lib.optional (!allowGoReference) "-trimpath");
-    inherit CGO_ENABLED enableParallelBuilding GO111MODULE GOTOOLCHAIN;
+    inherit enableParallelBuilding GO111MODULE GOTOOLCHAIN;
 
+    CGO_ENABLED = if stdenvWantsPIE then 1 else CGO_ENABLED;
     # If not set to an explicit value, set the buildid empty for reproducibility.
-    ldflags = ldflags ++ lib.optional (!lib.any (lib.hasPrefix "-buildid=") ldflags) "-buildid=";
+    ldflags = ldflags
+    ++ lib.optional (!lib.any (lib.hasPrefix "-buildid=") ldflags) "-buildid="
+    ++ lib.optional stdenvWantsPIE "-linkmode=external";
 
     configurePhase = args.configurePhase or (''
       runHook preConfigure

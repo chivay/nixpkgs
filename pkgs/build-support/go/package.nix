@@ -73,9 +73,11 @@ let
   importGodeps = { depsFile }:
     map dep2src (import depsFile);
 
+  stdenvWantsPIE = builtins.elem "pie" stdenv.cc.bintools.defaultHardeningFlags;
+
   goPath = if goDeps != null then importGodeps { depsFile = goDeps; } ++ extraSrcs
                              else extraSrcs;
-  package = stdenv.mkDerivation (
+   package = stdenv.mkDerivation (
     (builtins.removeAttrs args [ "goPackageAliases" "disabled" "extraSrcs"]) // {
 
     nativeBuildInputs = [ go ]
@@ -87,7 +89,9 @@ let
     GOHOSTARCH = go.GOHOSTARCH or null;
     GOHOSTOS = go.GOHOSTOS or null;
 
-    inherit CGO_ENABLED enableParallelBuilding;
+    inherit enableParallelBuilding;
+
+    CGO_ENABLED = if stdenvWantsPIE then 1 else CGO_ENABLED;
 
     GO111MODULE = "off";
     GOTOOLCHAIN = "local";
@@ -96,7 +100,9 @@ let
     GOARM = toString (lib.intersectLists [(stdenv.hostPlatform.parsed.cpu.version or "")] ["5" "6" "7"]);
 
     # If not set to an explicit value, set the buildid empty for reproducibility.
-    ldflags = ldflags ++ lib.optional (!lib.any (lib.hasPrefix "-buildid=") ldflags) "-buildid=";
+    ldflags = ldflags
+    ++ lib.optional (!lib.any (lib.hasPrefix "-buildid=") ldflags) "-buildid="
+    ++ lib.optional stdenvWantsPIE "-linkmode=external";
 
     configurePhase = args.configurePhase or (''
       runHook preConfigure
