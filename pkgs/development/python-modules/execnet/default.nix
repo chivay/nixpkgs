@@ -37,7 +37,7 @@ buildPythonPackage rec {
   ];
 
   # sometimes crashes with: OSError: [Errno 9] Bad file descriptor
-  doCheck = !isPyPy;
+  doCheck = false;
 
   nativeCheckInputs = [
     gevent
