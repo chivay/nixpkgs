@@ -45,6 +45,8 @@ stdenv.mkDerivation rec {
 
     substituteInPlace multipathd/multipathd.service.in \
       --replace-fail /sbin/multipathd "$out/bin/multipathd"
+    substituteInPlace libmultipath/configure.c \
+      --replace-fail "struct config *conf;" "struct config *conf = NULL;"
   '';
 
   nativeBuildInputs = [
